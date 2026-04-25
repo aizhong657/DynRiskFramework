@@ -1,0 +1,5 @@
+﻿检验,统计量,p值,结论,备注,模型
+Kupiec POF,2.9393,0.0865,通过,违例率=0.43%（理论1.00%）,ETGPD-Transformer
+Christoffersen,0.0259,0.8722,通过,π₀₁=0.004  π₁₁=0.000,ETGPD-Transformer
+DQ Test,12.9451,0.0239,失败,动态分位数自相关检验,ETGPD-Transformer
+ESR,1.7995,0.5389,通过,n_viol=3  ESR理想≈1.0,ETGPD-Transformer

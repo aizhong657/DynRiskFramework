@@ -1,0 +1,53 @@
+# ============================================================
+# DynRiskFramework — .gitignore
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+*.egg-info/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 密钥
+.env
+.env.local
+
+# 模型快照（可复现，不进 git）
+*.pt
+*.pth
+*.ckpt
+*.pkl
+temp_models/
+outputs/
+
+# 日志
+*.log
+logs/
+
+# LaTeX 中间文件
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# 数据文件（允许 data/ 下的 CSV 进 git，供导师复现）
+*.csv
+!data/*.csv
+!results/**/*.csv
+
+# 允许结果图进 git
+!figures/**/*.png
+!figures/**/*.pdf
+!results/**/*.xlsx
