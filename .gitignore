@@ -42,9 +42,9 @@ logs/
 *.fdb_latexmk
 *.synctex.gz
 
-# 数据文件（允许 data/ 下的 CSV 进 git，供导师复现）
+# 数据文件（不进 git）
+data/
 *.csv
-!data/*.csv
 !results/**/*.csv
 
 # 允许结果图进 git
