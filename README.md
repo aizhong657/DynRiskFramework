@@ -4,88 +4,202 @@
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 
-**DynRiskFramework** 是一个金融时序预测与尾部风险度量的两阶段集成框架，融合了 **神经随机微分方程 (Neural SDE)** 与 **极值理论 (EVT)**。该框架专门针对金融市场的非线性、混沌特征以及极端事件（厚尾风险）设计。
+金融时序预测与尾部风险度量框架，融合神经随机微分方程与极值理论。包含两个核心模型：
+
+- **DS-LDE**：双流融合 Lévy-SDE，用于多步价格路径预测
+- **ETGPD-Transformer**：稀疏注意力 + 广义帕累托分布，用于条件 VaR / ES 度量
 
 ---
 
-## 🌟 核心特性
+## 环境要求
 
-### 第一阶段：DS-LDE (Dual-Stream Lévy-SDE)
-- **双流融合架构**：随机流（Lévy 驱动的 SDE）捕捉价格随机演化，特征流（动力学辅助特征）提取确定性混沌规律。
-- **厚尾建模**：采用 **Lévy 稳定分布 ($\alpha=1.2$)** 代替传统布朗运动，更精准地刻画金融危机的极端价格跳跃。
-- **注意力融合**：利用 Multi-head Attention 动态加权双流特征，增强模型在不同市场状态下的适应性。
-
-### 第二阶段：ETGPD-Transformer
-- **稀疏注意力机制**：采用 Sparse Attention 过滤噪声，聚焦关键历史交易时点。
-- **尾部校正 (EVT)**：将 Transformer 的分位数回归与 **广义帕累托分布 (GPD)** 结合，通过后验校正显著提升 VaR 和 ES 的度量精度。
-- **可解释性分析**：集成 SHAP 归因分析，揭示金融危机期间各动力学特征对尾部风险的贡献度。
+- Python 3.10+
+- PyTorch 2.0+
+- CUDA（可选，CPU 也可运行）
 
 ---
 
-## 📂 目录结构
+## 安装
 
-```text
-DynRiskFramework/
-├── stage1/                      # 第一阶段：DS-LDE 路径预测
-│   ├── chaotic_analysis/        # 混沌特征分析（Lyapunov, Cao, GP 等）
-│   ├── models/                  # DS-LDE 主模型及消融变体
-│   ├── baselines/               # 对比基线（ARIMA, LSTM, SDE 等）
-│   └── experiments/             # 批量实验与稳健性验证脚本
-├── stage2/                      # 第二阶段：ETGPD-Transformer 风险度量
-│   ├── models/                  # ETGPD-Transformer 主模型
-│   ├── features/                # 12 维动力学特征提取
-│   ├── training/                # 滚动回测与四项统计检验 (Kupiec, DQ 等)
-│   └── shap_analysis/           # SHAP 危机归因分析
-├── data/                        # 包含 11 种资产（A股、BTC）的原始数据
-├── results/                     # 预生成的实验结果汇总 (CSV/XLSX)
-└── figures/                     # 论文配图（路径预测、注意力热图、SHAP 等）
-```
-
----
-
-## 🚀 快速开始
-
-### 1. 环境准备
 ```bash
-git clone https://github.com/aizhong657/DynRiskFramework.git
+git clone https://github.com/你的用户名/DynRiskFramework.git
 cd DynRiskFramework
 python -m venv .venv
-# Windows:
-.\.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
+.\.venv\Scripts\activate        # Windows
+# source .venv/bin/activate     # macOS / Linux
 pip install -r requirements.txt
 ```
 
-### 2. 配置文件
-复制 `.env.example` 并重命名为 `.env`，通常默认配置即可运行。
+---
 
-### 3. 运行第一阶段 (DS-LDE)
+## 配置路径
+
 ```bash
-# 训练并运行主模型
+copy .env.example .env    # Windows
+```
+
+`.env` 默认内容如下，`data/` 目录已包含全部数据，**通常无需修改**：
+
+```
+DATA_DIR=./data
+OUTPUT_DIR=./outputs
+```
+
+运行以下命令可验证数据路径是否正确：
+
+```bash
+python config.py
+```
+
+---
+
+## 目录结构
+
+```
+DynRiskFramework/
+├── config.py                        # 路径与超参数统一配置
+├── requirements.txt
+├── .env.example
+│
+├── data/                            # 原始日频 K 线 CSV（11 个资产）
+│
+├── stage1/
+│   ├── chaotic_analysis/            # 混沌特征分析工具
+│   │   ├── log_return_distribution.py
+│   │   ├── ami_embedding_delay.py
+│   │   ├── cao_embedding_dim.py
+│   │   ├── grassberger_procaccia_d2.py
+│   │   ├── lyapunov_bootstrap.py
+│   │   └── rosenstein_lambda_max.py
+│   ├── models/                      # DS-LDE 主模型及消融变体
+│   │   ├── ds_lde.py                # ★ 主模型
+│   │   ├── ablation_no_psr.py
+│   │   ├── ablation_no_sde.py
+│   │   ├── ablation_no_attention.py
+│   │   ├── sdenet_v1.py
+│   │   ├── ldenet_v1.py
+│   │   ├── ldenet_dual_stream.py
+│   │   └── ldenet_dual_stream_v2.py
+│   ├── baselines/                   # 对比基线模型
+│   │   ├── arima.py
+│   │   ├── lstm_simple.py
+│   │   ├── lstm_psr.py
+│   │   ├── naive_forecast.py
+│   │   └── five_models_compare.py
+│   └── experiments/                 # 实验脚本
+│       ├── sensitivity_analysis.py
+│       ├── residual_analysis.py
+│       ├── multi_asset_validation.py
+│       ├── robustness_seeds.py
+│       └── runner.py                # 一键批量运行
+│
+├── stage2/
+│   ├── main_pipeline.py             # ★ 端到端入口
+│   ├── models/
+│   │   └── etgpd_transformer.py     # 稀疏注意力 + 时变 GPD
+│   ├── training/
+│   │   └── trainer.py               # 训练 + 四项回测检验
+│   ├── features/
+│   │   └── dynamical_features.py    # 12 维动力学特征
+│   └── shap_analysis/
+│       └── crisis_shap.py           # SHAP 危机归因分析
+│
+├── results/
+│   ├── stage1/                      # DS-LDE 实验结果 CSV / XLSX
+│   └── stage2/                      # 回测报告与预测明细 CSV
+│
+└── figures/
+    ├── stage1/                      # 路径预测相关配图
+    └── stage2/                      # 注意力热图、SHAP 图等
+```
+
+---
+
+## 运行 DS-LDE 路径预测
+
+**混沌特征分析**（嵌入维数、关联维数、Lyapunov 指数）：
+
+```bash
+python stage1/chaotic_analysis/cao_embedding_dim.py
+python stage1/chaotic_analysis/grassberger_procaccia_d2.py
+python stage1/chaotic_analysis/lyapunov_bootstrap.py
+```
+
+**训练主模型**：
+
+```bash
 python stage1/models/ds_lde.py
-# 运行全部对比实验
+```
+
+**运行对比实验**（DS-LDE vs LSTM / ARIMA / SDE）：
+
+```bash
+python stage1/baselines/five_models_compare.py
+```
+
+**一键运行全部实验**（基线、消融、多资产、稳健性）：
+
+```bash
 python stage1/experiments/runner.py
 ```
 
-### 4. 运行第二阶段 (ETGPD-Transformer)
+输出保存到 `outputs/` 目录；汇总结果已在 `results/stage1/` 中提供。
+
+---
+
+## 运行 ETGPD-Transformer 风险度量
+
+**端到端流水线**（特征提取 → 训练 → 滚动回测 → 四项检验）：
+
 ```bash
-# 运行端到端流水线（特征提取 -> 训练 -> 回测 -> 检验）
 python stage2/main_pipeline.py
 ```
 
+**SHAP 危机截面归因分析**：
+
+```bash
+python stage2/shap_analysis/crisis_shap.py
+```
+
+输出保存到 `outputs/`；回测报告已在 `results/stage2/` 中提供。
+
 ---
 
-## 📊 数据说明
-项目内置了 11 种资产的日频 K 线数据，涵盖：
-- **股指**：上证 50 指数、沪深 300 指数
-- **个股**：贵州茅台、招商银行、中国平安、宁德时代等
-- **加密货币**：BTC (Bitcoin)
+## 数据说明
+
+`data/` 目录包含全部原始日频 K 线，来源 [baostock](http://baostock.com/)，字段：`date, open, high, low, close, volume`。
+
+| 文件 | 资产 |
+|---|---|
+| `sz50_index_data.csv` | 上证 50 指数 |
+| `hs300_index_data.csv` | 沪深 300 指数 |
+| `cnpc_data.csv` | 中石油（601857）|
+| `cmb_data.csv` | 招商银行（600036）|
+| `maotai_data.csv` | 贵州茅台（600519）|
+| `yili_data.csv` | 伊利股份（600887）|
+| `pingan_data.csv` | 中国平安（601318）|
+| `gree_data.csv` | 格力电器（000651）|
+| `ningde_data.csv` | 宁德时代 |
+| `dongfang_data.csv` | 东方财富 |
+| `BTC_data.csv` | 比特币 |
+| `corr_dim_scaled.csv` | 预计算关联维数特征 |
 
 ---
 
-## 📜 许可证
-本项目采用 [MIT License](LICENSE) 许可。
+## 结果文件说明
 
-## 📧 联系方式
-如有任何疑问，请联系：[aizhong657@example.com](mailto:aizhong657@example.com)
+| 文件 | 内容 |
+|---|---|
+| `results/stage1/results_baseline_sz50.csv` | DS-LDE 与基线模型 t+1~t+4 误差对比 |
+| `results/stage1/results_ablation_sz50.csv` | 消融实验（移除 PSR / SDE / Attention）|
+| `results/stage1/results_multiasset.csv` | 多资产鲁棒性验证结果 |
+| `results/stage1/ssz50_LDE_results.xlsx` | 逐日预测明细，含混淆矩阵与区间覆盖率 |
+| `results/stage2/backtest_report.csv` | Kupiec / Christoffersen / DQ / ESR 四项检验汇总 |
+| `results/stage2/rolling_predictions.csv` | 滚动回测逐日 VaR / ES 预测值 |
+| `results/stage2/shap_compare.csv` | 危机期 vs 正常期特征重要性对比 |
+
+---
+
+## License
+
+MIT License，见 [LICENSE](./LICENSE)。
